@@ -16,7 +16,7 @@ held together with Super, Ctrl, or Alt:
 
 ![Omakeycast demo](screenshots/demo.gif)
 
-Click the keyboard icon on the bar, or press `Super + Ctrl + Alt + K` after
+Click the keyboard icon on the bar, or press `Super + Ctrl + Shift + K` after
 adding the binding below, to turn overlays on or off and to change duration,
 font size, and corner.
 
@@ -27,7 +27,7 @@ omarchy plugin add https://github.com/fredimachado/omakeycast.git --enable
 ```
 
 The overlay starts as soon as the plugin is enabled. A keyboard icon is added
-to the right side of the bar; click it, or press `Super + Ctrl + Alt + K`
+to the right side of the bar; click it, or press `Super + Ctrl + Shift + K`
 after adding the binding in Keyboard below, to turn overlays on or off and to
 change duration, font size, and corner. Move the icon with `omarchy bar move`.
 
@@ -45,7 +45,7 @@ full capture on its own. Until then it keeps showing Hyprland binds only.
 
 ## Configure
 
-Click the keyboard icon on the bar, or press `Super + Ctrl + Alt + K` after
+Click the keyboard icon on the bar, or press `Super + Ctrl + Shift + K` after
 adding the binding below. Changes write to `~/.config/omarchy/shell.json` and
 the overlay reloads them on save.
 
@@ -135,7 +135,7 @@ make check
 ```
 
 That validates the manifest, runs the combo and settings tests, and lints
-the overlay, bar widget, and settings panel against the installed Omarchy
+the overlay and settings panel against the installed Omarchy
 shell imports.
 
 `qmllint` may warn that it cannot resolve `qs.Commons` / `qs.Ui` outside a
