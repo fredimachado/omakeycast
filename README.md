@@ -67,10 +67,12 @@ Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
 fades after `duration` seconds. A new combo resets the timer. The bar panel's
 Preview button shows a sample combo without pressing a shortcut.
 
-If the icon is missing after an upgrade from an overlay-only install:
+If the icon is missing after an upgrade from an overlay-only install, disable
+and enable the plugin so Omarchy can place the widget on the bar:
 
 ```sh
-omarchy bar put io.github.fredimachado.omakeycast
+omarchy plugin disable io.github.fredimachado.omakeycast
+omarchy plugin enable io.github.fredimachado.omakeycast
 ```
 
 To preview the overlay without pressing a shortcut:
