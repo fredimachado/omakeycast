@@ -18,8 +18,9 @@ held together with Super, Ctrl, or Alt:
 omarchy plugin add https://github.com/fredimachado/omakeycast.git --enable
 ```
 
-The overlay starts as soon as the plugin is enabled. It does not add a bar
-widget.
+The overlay starts as soon as the plugin is enabled. A keyboard icon is added
+to the right side of the bar; click it to change duration, font size, and
+corner from a panel. Move it with `omarchy bar move`.
 
 ### Optional: in-app shortcuts
 
@@ -35,8 +36,10 @@ full capture on its own. Until then it keeps showing Hyprland binds only.
 
 ## Configure
 
-Settings live inline on the plugin entry in `~/.config/omarchy/shell.json`.
-The file reloads on save.
+Click the keyboard icon on the bar. Changes write to
+`~/.config/omarchy/shell.json` and the overlay reloads them on save.
+
+You can also edit the plugin or bar-layout entry by hand:
 
 ```json
 {
@@ -61,7 +64,14 @@ The file reloads on save.
 
 Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
 `input` group). The HUD appears on every screen, ignores mouse clicks, and
-fades after `duration` seconds. A new combo resets the timer.
+fades after `duration` seconds. A new combo resets the timer. The bar panel's
+Preview button shows a sample combo without pressing a shortcut.
+
+If the icon is missing after an upgrade from an overlay-only install:
+
+```sh
+omarchy bar put io.github.fredimachado.omakeycast
+```
 
 To preview the overlay without pressing a shortcut:
 
@@ -88,7 +98,8 @@ make check
 ```
 
 That validates the manifest, runs the combo and settings tests, and lints
-`Overlay.qml` against the installed Omarchy shell imports.
+the overlay, bar widget, and settings panel against the installed Omarchy
+shell imports.
 
 `qmllint` may warn that it cannot resolve `qs.Commons` / `qs.Ui` outside a
 running Quickshell session. The same imports are used by first-party plugins

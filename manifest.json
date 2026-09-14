@@ -6,10 +6,11 @@
   "author": "Fredi Machado",
   "license": "MIT",
   "description": "On-screen Super, Ctrl, and Alt keybinding overlay for screen recordings.",
-  "kinds": ["overlay"],
+  "kinds": ["overlay", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {
-    "overlay": "Overlay.qml"
+    "overlay": "Overlay.qml",
+    "barWidget": "BarWidget.qml"
   },
   "overlay": {
     "defaults": {
@@ -17,5 +18,22 @@
       "fontSize": 28,
       "position": "bottom-right"
     }
+  },
+  "barWidget": {
+    "displayName": "Omakeycast",
+    "description": "On-screen Super, Ctrl, and Alt keybinding overlay for screen recordings.",
+    "category": "Recording",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "duration": 2,
+      "fontSize": 28,
+      "position": "bottom-right"
+    },
+    "schema": [
+      { "key": "duration", "type": "number", "label": "Duration (seconds)", "min": 0.25, "max": 30, "step": 0.25, "defaultValue": 2 },
+      { "key": "fontSize", "type": "integer", "label": "Font size", "min": 12, "max": 96, "step": 1, "defaultValue": 28 },
+      { "key": "position", "type": "enum", "label": "Position", "options": ["bottom-right", "bottom-left", "top-right", "top-left"], "defaultValue": "bottom-right" }
+    ]
   }
 }

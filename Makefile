@@ -7,4 +7,4 @@ check:
 	node tests/model.test.js
 	python3 tests/listen-keys.test.py
 	omarchy plugin validate .
-	$(QMLLINT) -I "$(OMARCHY_PATH)/shell" Overlay.qml
+	$(QMLLINT) -I "$(OMARCHY_PATH)/shell" Overlay.qml BarWidget.qml Panel.qml

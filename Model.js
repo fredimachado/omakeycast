@@ -11,6 +11,13 @@ var DEFAULTS = {
 
 var POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"]
 
+var POSITION_OPTIONS = [
+  { value: "bottom-right", label: "Bottom right" },
+  { value: "bottom-left", label: "Bottom left" },
+  { value: "top-right", label: "Top right" },
+  { value: "top-left", label: "Top left" }
+]
+
 var HL_SHIFT = 1
 var HL_CTRL = 4
 var HL_ALT = 8
@@ -171,14 +178,69 @@ function parseSettings(raw) {
   }
 }
 
-function pluginEntry(config, pluginId) {
+function findEntryById(list, pluginId) {
+  if (!Array.isArray(list)) return null
   var id = String(pluginId || PLUGIN_ID)
-  if (!config || !Array.isArray(config.plugins)) return null
-  for (var i = 0; i < config.plugins.length; i++) {
-    var entry = config.plugins[i]
+  for (var i = 0; i < list.length; i++) {
+    var entry = list[i]
     if (entry && String(entry.id || "") === id) return entry
   }
   return null
+}
+
+function pluginsArrayEntry(config, pluginId) {
+  return findEntryById(config && config.plugins, pluginId)
+}
+
+function barLayoutEntry(config, pluginId) {
+  var layout = config && config.bar && config.bar.layout
+  if (!layout) return null
+  var sections = ["left", "center", "right"]
+  for (var i = 0; i < sections.length; i++) {
+    var found = findEntryById(layout[sections[i]], pluginId)
+    if (found) return found
+  }
+  return null
+}
+
+function mergeEntries(primary, fallback) {
+  if (!primary) return fallback || null
+  if (!fallback) return primary
+  var out = ({})
+  for (var key in fallback) out[key] = fallback[key]
+  for (var next in primary) {
+    if (primary[next] !== undefined && primary[next] !== null) out[next] = primary[next]
+  }
+  return out
+}
+
+function pluginEntry(config, pluginId) {
+  return mergeEntries(barLayoutEntry(config, pluginId), pluginsArrayEntry(config, pluginId))
+}
+
+function settingsPayload(settings, values, pluginId) {
+  var entry = { id: String(pluginId || PLUGIN_ID) }
+  if (settings) {
+    for (var key in settings) if (key !== "id") entry[key] = settings[key]
+  }
+  var parsed = parseSettings(entry)
+  entry.duration = parsed.duration
+  entry.fontSize = parsed.fontSize
+  entry.position = parsed.position
+  if (values) {
+    for (var next in values) entry[next] = values[next]
+  }
+  parsed = parseSettings(entry)
+  entry.duration = parsed.duration
+  entry.fontSize = parsed.fontSize
+  entry.position = parsed.position
+  return entry
+}
+
+function formatDuration(seconds) {
+  var n = parseSettings({ duration: seconds }).duration
+  if (Math.abs(n - Math.round(n)) < 0.001) return String(Math.round(n)) + "s"
+  return String(Math.round(n * 100) / 100) + "s"
 }
 
 function parseShellJson(text, pluginId) {
@@ -221,8 +283,12 @@ if (typeof module !== "undefined") {
     PLUGIN_ID: PLUGIN_ID,
     DEFAULTS: DEFAULTS,
     POSITIONS: POSITIONS,
+    POSITION_OPTIONS: POSITION_OPTIONS,
     parseSettings: parseSettings,
     parseShellJson: parseShellJson,
+    pluginEntry: pluginEntry,
+    settingsPayload: settingsPayload,
+    formatDuration: formatDuration,
     parseListenerLine: parseListenerLine,
     formatCombo: formatCombo,
     hyprKeyLabel: hyprKeyLabel,

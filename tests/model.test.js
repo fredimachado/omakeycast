@@ -30,6 +30,37 @@ assert.equal(fromShell.position, "bottom-left")
 assert.deepEqual(Model.parseShellJson("not-json"), Model.parseSettings(null))
 assert.deepEqual(Model.parseShellJson('{"plugins":[]}'), Model.parseSettings(null))
 
+const fromBar = Model.parseShellJson(JSON.stringify({
+  version: 1,
+  bar: {
+    layout: {
+      right: [{ id: Model.PLUGIN_ID, duration: 4, fontSize: 32, position: "top-left" }]
+    }
+  },
+  plugins: [{ id: Model.PLUGIN_ID, duration: 9 }]
+}))
+assert.equal(fromBar.duration, 4)
+assert.equal(fromBar.fontSize, 32)
+assert.equal(fromBar.position, "top-left")
+
+const fromPluginsWhenBarBare = Model.parseShellJson(JSON.stringify({
+  version: 1,
+  bar: { layout: { right: [{ id: Model.PLUGIN_ID }] } },
+  plugins: [{ id: Model.PLUGIN_ID, duration: 3, fontSize: 40, position: "bottom-left" }]
+}))
+assert.equal(fromPluginsWhenBarBare.duration, 3)
+assert.equal(fromPluginsWhenBarBare.fontSize, 40)
+assert.equal(fromPluginsWhenBarBare.position, "bottom-left")
+
+const payload = Model.settingsPayload({ duration: 3 }, { fontSize: 40 }, Model.PLUGIN_ID)
+assert.equal(payload.id, Model.PLUGIN_ID)
+assert.equal(payload.duration, 3)
+assert.equal(payload.fontSize, 40)
+assert.equal(payload.position, "bottom-right")
+assert.equal(Model.formatDuration(2), "2s")
+assert.equal(Model.formatDuration(1.5), "1.5s")
+assert.equal(Model.POSITION_OPTIONS.length, 4)
+
 assert.deepEqual(Model.parseListenerLine('{"type":"combo","text":"Ctrl + A"}'), {
   type: "combo",
   text: "Ctrl + A"
