@@ -26,6 +26,17 @@ var PANEL_DURATION_STEP = 0.5
 var PANEL_FONT_MIN = 12
 var PANEL_FONT_MAX = 64
 
+// Linux evdev scan codes for the panel letters. Qt Wayland often delivers
+// those keys with empty event.text and a key that is not Qt.Key_J.
+var EVDEV_LETTERS = {
+  24: "o",
+  25: "p",
+  35: "h",
+  36: "j",
+  37: "k",
+  38: "l"
+}
+
 var HL_SHIFT = 1
 var HL_CTRL = 4
 var HL_ALT = 8
@@ -259,6 +270,17 @@ function formatDuration(seconds) {
   return String(Math.round(n * 100) / 100) + "s"
 }
 
+function panelKeyLetter(key, text, nativeScanCode) {
+  var t = String(text || "")
+  if (t.length === 1 && /[A-Za-z]/.test(t)) return t.toLowerCase()
+  var k = parseInt(key, 10) || 0
+  if (k >= 65 && k <= 90) return String.fromCharCode(k + 32)
+  var scan = parseInt(nativeScanCode, 10) || 0
+  if (EVDEV_LETTERS[scan]) return EVDEV_LETTERS[scan]
+  if (scan >= 8 && EVDEV_LETTERS[scan - 8]) return EVDEV_LETTERS[scan - 8]
+  return ""
+}
+
 function nextPanelSection(current, delta) {
   var idx = PANEL_SECTIONS.indexOf(String(current || ""))
   if (idx < 0) return PANEL_SECTIONS[0]
@@ -337,6 +359,7 @@ if (typeof module !== "undefined") {
     POSITION_OPTIONS: POSITION_OPTIONS,
     PANEL_SECTIONS: PANEL_SECTIONS,
     nextPanelSection: nextPanelSection,
+    panelKeyLetter: panelKeyLetter,
     nudgeDuration: nudgeDuration,
     nudgeFontSize: nudgeFontSize,
     cyclePosition: cyclePosition,

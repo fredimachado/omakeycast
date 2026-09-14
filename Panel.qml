@@ -4,21 +4,24 @@ import qs.Commons
 import qs.Ui
 import "Model.js" as Model
 
+// Bar widget + settings popup. Same shape as omarchy.audio / omarchy.monitor /
+// omarchy.dropbox: the slot item owns the icon, KeyboardPanel, and key catcher.
+// A separate Loader (clock-style) left this panel's keys on a visible:false
+// parent, which third-party widgets do not recover from the way first-party
+// clock does.
 Panel {
   id: root
   moduleName: "io.github.fredimachado.omakeycast"
+  ipcTarget: "omakeycast-settings"
   manageIpc: false
 
-  property var anchorItem: null
-  property var hostWidget: null
-  readonly property var barIdentity: hostWidget || root
-
   readonly property var parsed: Model.parseSettings(settings)
+  readonly property bool overlaysEnabled: parsed.enabled
   readonly property color foreground: bar ? bar.foreground : Color.popups.text
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
-  // Single cursor shared by keyboard and mouse, matching Audio/Display:
-  // first hjkl/arrow reveals the highlight, later keys move or nudge.
+  // Single cursor shared by keyboard and mouse. First hjkl/arrow reveals the
+  // highlight, matching Audio/Display; later keys move or nudge.
   property string focusSection: "header"
   property bool cursorActive: false
 
@@ -28,8 +31,18 @@ Panel {
   readonly property bool positionHasCursor: cursorActive && focusSection === "position"
   readonly property bool previewHasCursor: cursorActive && focusSection === "preview"
 
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
+
   onOpenedChanged: {
-    if (root.opened) return
+    if (root.opened) {
+      root.cursorActive = false
+      root.focusSection = "header"
+      Qt.callLater(function() {
+        if (root.opened && keyCatcher) keyCatcher.forceActiveFocus()
+      })
+      return
+    }
     root.cursorActive = false
     root.focusSection = "header"
     positionDropdown.close()
@@ -46,16 +59,9 @@ Panel {
     root.controller.hide()
   }
 
-  function switchPanel(direction) {
-    if (root.bar && typeof root.bar.switchPanelFrom === "function")
-      return root.bar.switchPanelFrom(root.barIdentity, direction)
-    return false
-  }
-
   function persistSettings(values) {
     var entry = Model.settingsPayload(root.settings, values, root.moduleName)
     root.settings = entry
-    if (root.hostWidget && "settings" in root.hostWidget) root.hostWidget.settings = entry
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
     if (entry.enabled) {
@@ -137,17 +143,37 @@ Panel {
     onTriggered: root.preview()
   }
 
+  IpcHandler {
+    target: "omakeycast-settings"
+    function open(): void { root.open() }
+    function close(): void { root.close() }
+    function show(): void { root.open() }
+    function hide(): void { root.close() }
+    function toggle(): void { root.toggle() }
+  }
+
+  BarIconButton {
+    id: button
+    anchors.fill: parent
+    bar: root.bar
+    text: root.overlaysEnabled ? "󰌌" : "󰌐"
+    tooltipText: root.overlaysEnabled ? "Omakeycast" : "Omakeycast (off)"
+    onPressed: function(buttonCode) {
+      if (buttonCode === Qt.LeftButton) root.toggle()
+    }
+  }
+
   KeyboardPanel {
     id: panel
-    anchorItem: root.anchorItem
-    owner: root.barIdentity
+    anchorItem: button
+    owner: root
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(300))
     contentHeight: panel.fittedContentHeight(content.implicitHeight)
 
-    PanelKeyCatcher {
+    KeyCatcher {
       id: keyCatcher
       anchors.fill: parent
       blocked: positionDropdown.popupOpen
@@ -160,11 +186,11 @@ Panel {
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
-        if (t === "o" || t === "O") {
+        if (t === "o") {
           root.persistSettings({ enabled: !root.parsed.enabled })
           return
         }
-        if ((t === "p" || t === "P") && root.parsed.enabled) root.preview()
+        if (t === "p" && root.parsed.enabled) root.preview()
       }
 
       Column {
@@ -351,7 +377,7 @@ Panel {
 
         Button {
           width: parent.width
-          text: "Preview"
+          text: "Show sample"
           fontFamily: root.fontFamily
           foreground: root.foreground
           bordered: true

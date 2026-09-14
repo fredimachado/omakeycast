@@ -80,6 +80,12 @@ assert.equal(Model.nudgeFontSize(12, -1), 12)
 assert.equal(Model.cyclePosition("bottom-right", 1), "bottom-left")
 assert.equal(Model.cyclePosition("top-left", 1), "top-left")
 assert.equal(Model.cyclePosition("bottom-right", -1), "bottom-right")
+assert.equal(Model.panelKeyLetter(80, "", 0), "p")
+assert.equal(Model.panelKeyLetter(74, "", 0), "j")
+assert.equal(Model.panelKeyLetter(0, "O", 0), "o")
+assert.equal(Model.panelKeyLetter(0, "", 36), "j")
+assert.equal(Model.panelKeyLetter(0, "", 25), "p")
+assert.equal(Model.panelKeyLetter(0, "", 44), "j")
 
 assert.deepEqual(Model.parseListenerLine('{"type":"combo","text":"Ctrl + A"}'), {
   type: "combo",

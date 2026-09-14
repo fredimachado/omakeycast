@@ -76,30 +76,31 @@ You can also edit the plugin or bar-layout entry by hand:
 
 | Key | Where | Action |
 | --- | --- | --- |
-| `Super + Ctrl + Alt + K` | Hyprland | Open or close the Omakeycast panel |
-| `j` / `k` or up/down | Panel | Move between overlay toggle, duration, font size, position, and Preview |
+| `Super + Ctrl + Shift + K` | Hyprland | Open or close the Omakeycast panel |
+| `j` / `k` or up/down | Panel | First press shows the highlight; later presses move between overlay toggle, duration, font size, position, and Show sample |
 | `h` / `l` or left/right | Panel | Nudge duration or font size, or cycle corners |
-| `Enter` / `Space` | Panel | Toggle overlays, open the position list, or Preview |
+| `Enter` / `Space` | Panel | Toggle overlays, open the position list, or show a sample combo |
 | `O` | Panel | Overlays on or off |
-| `P` | Panel | Preview |
+| `P` | Panel | Show a sample combo |
 | `Esc` | Panel | Close |
 
-The Hyprland binding is not installed automatically. Add it to
-`~/.config/hypr/bindings.lua`:
+The Hyprland binding is not installed automatically. This plugin is also an
+overlay, so Omarchy cannot route `omarchy-shell shell toggle <plugin id>` to
+the bar panel the way Audio does. Add this to `~/.config/hypr/bindings.lua`:
 
 ```lua
-o.bind("SUPER + CTRL + ALT + K", "Omakeycast", "omarchy-shell omakeycast-settings toggle")
+o.bind("SUPER + CTRL + SHIFT + K", "Omakeycast", "omarchy-shell omakeycast-settings toggle")
 ```
 
-Inside the panel, keys match Audio and Display. The first arrow or `hjkl`
-press shows the highlight; later keys move or change values.
+Release Super before typing in the panel. Super+J/K/H/L/O/P and Super+arrows
+are already Hyprland window binds. Inside the panel, keys match Audio and Display.
 
 ## Usage
 
 Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
 `input` group). The HUD appears on every screen, ignores mouse clicks, and
 fades after `duration` seconds. A new combo resets the timer. The bar panel's
-Preview button shows a sample combo without pressing a shortcut.
+Show sample button shows a combo without pressing a shortcut.
 
 If the icon is missing after an upgrade from an overlay-only install, disable
 and enable the plugin so Omarchy can place the widget on the bar:
