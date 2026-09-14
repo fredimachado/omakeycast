@@ -37,10 +37,22 @@ Panel {
     if (root.hostWidget && "settings" in root.hostWidget) root.hostWidget.settings = entry
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
-    previewTimer.restart()
+    if (entry.enabled) {
+      previewTimer.restart()
+      return
+    }
+    previewTimer.stop()
+    if (values && values.enabled === false) root.hideOverlay()
+  }
+
+  function hideOverlay() {
+    if (hideProc.running) hideProc.running = false
+    hideProc.command = ["omarchy-shell", "omakeycast", "close"]
+    hideProc.running = true
   }
 
   function preview() {
+    if (!root.parsed.enabled) return
     if (previewProc.running) previewProc.running = false
     previewProc.command = ["omarchy-shell", "omakeycast", "show", '{"text":"Super + Return"}']
     previewProc.running = true
@@ -48,6 +60,10 @@ Panel {
 
   Process {
     id: previewProc
+  }
+
+  Process {
+    id: hideProc
   }
 
   Timer {
@@ -73,7 +89,11 @@ Panel {
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
-        if (t === "p" || t === "P") root.preview()
+        if (t === "o" || t === "O") {
+          root.persistSettings({ enabled: !root.parsed.enabled })
+          return
+        }
+        if ((t === "p" || t === "P") && root.parsed.enabled) root.preview()
       }
 
       Column {
@@ -81,13 +101,38 @@ Panel {
         width: parent.width
         spacing: Style.space(12)
 
-        Text {
+        Item {
           width: parent.width
-          text: "Omakeycast"
-          color: root.foreground
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.subtitle
-          font.bold: true
+          implicitHeight: Math.max(titleLabel.implicitHeight, overlaySwitch.implicitHeight)
+
+          Text {
+            id: titleLabel
+            anchors.left: parent.left
+            anchors.right: overlaySwitch.left
+            anchors.rightMargin: Style.space(12)
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Omakeycast"
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.subtitle
+            font.bold: true
+            elide: Text.ElideRight
+          }
+
+          ToggleSwitch {
+            id: overlaySwitch
+            checked: root.parsed.enabled
+            foreground: root.foreground
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            onToggled: root.persistSettings({ enabled: !root.parsed.enabled })
+
+            PanelToolTip {
+              visible: overlaySwitch.containsMouse
+              text: overlaySwitch.checked ? "Overlays on" : "Overlays off"
+              fontFamily: root.fontFamily
+            }
+          }
         }
 
         Text {
@@ -201,6 +246,7 @@ Panel {
           fontFamily: root.fontFamily
           foreground: root.foreground
           bordered: true
+          enabled: root.parsed.enabled
           onClicked: root.preview()
         }
       }

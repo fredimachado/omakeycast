@@ -2,11 +2,13 @@ import QtQuick
 import Quickshell.Io
 import qs.Commons
 import qs.Ui
+import "Model.js" as Model
 
 BarWidget {
   id: root
   moduleName: "io.github.fredimachado.omakeycast"
 
+  readonly property bool overlaysEnabled: Model.parseSettings(root.settings).enabled
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
 
@@ -65,8 +67,8 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰌌"
-    tooltipText: "Omakeycast"
+    text: root.overlaysEnabled ? "󰌌" : "󰌐"
+    tooltipText: root.overlaysEnabled ? "Omakeycast" : "Omakeycast (off)"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
     }

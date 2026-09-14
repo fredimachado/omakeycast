@@ -16,7 +16,8 @@ held together with Super, Ctrl, or Alt:
 
 ![Omakeycast demo](screenshots/demo.gif)
 
-Click the keyboard icon on the bar to change duration, font size, and corner.
+Click the keyboard icon on the bar to turn overlays on or off, and to change
+duration, font size, and corner.
 
 ## Install
 
@@ -25,8 +26,8 @@ omarchy plugin add https://github.com/fredimachado/omakeycast.git --enable
 ```
 
 The overlay starts as soon as the plugin is enabled. A keyboard icon is added
-to the right side of the bar; click it to change duration, font size, and
-corner from a panel. Move it with `omarchy bar move`.
+to the right side of the bar; click it to turn overlays on or off and to
+change duration, font size, and corner. Move it with `omarchy bar move`.
 
 ### Optional: in-app shortcuts
 
@@ -52,6 +53,7 @@ You can also edit the plugin or bar-layout entry by hand:
   "plugins": [
     {
       "id": "io.github.fredimachado.omakeycast",
+      "enabled": true,
       "duration": 2,
       "fontSize": 28,
       "position": "bottom-right"
@@ -62,6 +64,7 @@ You can also edit the plugin or bar-layout entry by hand:
 
 | Setting    | Default          | Meaning                                              |
 | ---------- | ---------------- | ---------------------------------------------------- |
+| `enabled`  | `true`           | Show the on-screen keybinding overlay                |
 | `duration` | `2`              | Seconds the combo stays visible                      |
 | `fontSize` | `28`             | Label size in pixels                                 |
 | `position` | `bottom-right`   | `bottom-right`, `bottom-left`, `top-right`, `top-left` |

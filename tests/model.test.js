@@ -2,6 +2,7 @@ const assert = require("node:assert/strict")
 const Model = require("../Model.js")
 
 assert.deepEqual(Model.parseSettings(null), {
+  enabled: true,
   duration: 2,
   durationMs: 2000,
   fontSize: 28,
@@ -15,15 +16,18 @@ assert.equal(Model.parseSettings({ fontSize: 18.6 }).fontSize, 19)
 assert.equal(Model.parseSettings({ fontSize: 4 }).fontSize, 12)
 assert.equal(Model.parseSettings({ position: "TOP_LEFT" }).position, "top-left")
 assert.equal(Model.parseSettings({ position: "center" }).position, "bottom-right")
+assert.equal(Model.parseSettings({ enabled: false }).enabled, false)
+assert.equal(Model.parseSettings({ enabled: "false" }).enabled, true)
 
 const shell = JSON.stringify({
   version: 1,
   plugins: [
     { id: "other.plugin", duration: 9 },
-    { id: Model.PLUGIN_ID, duration: 3, fontSize: 40, position: "bottom-left" }
+    { id: Model.PLUGIN_ID, enabled: false, duration: 3, fontSize: 40, position: "bottom-left" }
   ]
 })
 const fromShell = Model.parseShellJson(shell)
+assert.equal(fromShell.enabled, false)
 assert.equal(fromShell.duration, 3)
 assert.equal(fromShell.fontSize, 40)
 assert.equal(fromShell.position, "bottom-left")
@@ -57,6 +61,8 @@ assert.equal(payload.id, Model.PLUGIN_ID)
 assert.equal(payload.duration, 3)
 assert.equal(payload.fontSize, 40)
 assert.equal(payload.position, "bottom-right")
+assert.equal(payload.enabled, true)
+assert.equal(Model.settingsPayload({ enabled: false }, {}, Model.PLUGIN_ID).enabled, false)
 assert.equal(Model.formatDuration(2), "2s")
 assert.equal(Model.formatDuration(1.5), "1.5s")
 assert.equal(Model.POSITION_OPTIONS.length, 4)

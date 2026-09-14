@@ -4,6 +4,7 @@
 var PLUGIN_ID = "io.github.fredimachado.omakeycast"
 
 var DEFAULTS = {
+  enabled: true,
   duration: 2,
   fontSize: 28,
   position: "bottom-right"
@@ -167,10 +168,16 @@ function normalizePosition(value) {
   return POSITIONS.indexOf(key) !== -1 ? key : DEFAULTS.position
 }
 
+function parseBool(value, fallback) {
+  if (typeof value === "boolean") return value
+  return fallback === true
+}
+
 function parseSettings(raw) {
   var duration = clamp(raw && raw.duration, 0.25, 30, DEFAULTS.duration)
   var fontSize = Math.round(clamp(raw && raw.fontSize, 12, 96, DEFAULTS.fontSize))
   return {
+    enabled: parseBool(raw && raw.enabled, DEFAULTS.enabled),
     duration: duration,
     durationMs: Math.round(duration * 1000),
     fontSize: fontSize,
@@ -224,6 +231,7 @@ function settingsPayload(settings, values, pluginId) {
     for (var key in settings) if (key !== "id") entry[key] = settings[key]
   }
   var parsed = parseSettings(entry)
+  entry.enabled = parsed.enabled
   entry.duration = parsed.duration
   entry.fontSize = parsed.fontSize
   entry.position = parsed.position
@@ -231,6 +239,7 @@ function settingsPayload(settings, values, pluginId) {
     for (var next in values) entry[next] = values[next]
   }
   parsed = parseSettings(entry)
+  entry.enabled = parsed.enabled
   entry.duration = parsed.duration
   entry.fontSize = parsed.fontSize
   entry.position = parsed.position

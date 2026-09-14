@@ -22,6 +22,7 @@ Item {
     return url
   }
 
+  property bool overlaysEnabled: Model.DEFAULTS.enabled
   property int fontSize: Model.DEFAULTS.fontSize
   property int durationMs: Model.DEFAULTS.duration * 1000
   property string position: Model.DEFAULTS.position
@@ -41,12 +42,17 @@ Item {
 
   function applySettings(text) {
     var next = Model.parseShellJson(text, root.pluginId)
+    var wasEnabled = root.overlaysEnabled
+    root.overlaysEnabled = next.enabled
     root.fontSize = next.fontSize
     root.durationMs = next.durationMs
     root.position = next.position
+    if (!root.overlaysEnabled) root.close()
+    if (wasEnabled !== root.overlaysEnabled) root.syncCompanionBinds()
   }
 
   function showCombo(text) {
+    if (!root.overlaysEnabled) return
     var label = String(text || "").replace(/^\s+|\s+$/g, "")
     if (!label) return
     root.displayText = label
@@ -67,7 +73,7 @@ Item {
   }
 
   function syncCompanionBinds() {
-    var lua = Model.companionLua(root.evdevLive ? [] : root.hyprEntries)
+    var lua = Model.companionLua((!root.overlaysEnabled || root.evdevLive) ? [] : root.hyprEntries)
     if (evalProc.running) evalProc.running = false
     evalProc.command = ["hyprctl", "eval", lua]
     evalProc.running = true
