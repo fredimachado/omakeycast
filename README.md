@@ -31,8 +31,8 @@ the `input` group:
 sudo usermod -aG input "$USER"
 ```
 
-Log out and back in after that. Until the group is active, the overlay shows
-a reminder instead of key combos.
+Log out and back in after that. Until the group is active, Omakeycast sends a
+dismissible notification instead of showing key combos.
 
 ## Configure
 

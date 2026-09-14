@@ -25,7 +25,7 @@ Item {
   property int durationMs: Model.DEFAULTS.duration * 1000
   property string position: Model.DEFAULTS.position
   property string displayText: ""
-  property bool accessError: false
+  property bool accessDeniedNotified: false
   property bool opened: displayText !== ""
 
   readonly property bool placeRight: position.indexOf("right") !== -1
@@ -34,14 +34,8 @@ Item {
   readonly property int topClearance: Style.bar.sizeHorizontal + Style.gapsOut + Style.space(16)
   readonly property int pad: Style.space(16)
   readonly property int borderWidth: Math.max(1, Style.space(2))
-  readonly property int contentWidth: Math.ceil(Math.max(titleMetrics.advanceWidth, detailMetrics.advanceWidth))
-  readonly property int contentHeight: accessError
-    ? fontSize + Style.space(4) + Math.max(12, Math.round(fontSize * 0.45))
-    : fontSize
-  readonly property int cardWidth: borderWidth + pad + contentWidth + pad + borderWidth
-  readonly property int cardHeight: borderWidth + pad + contentHeight + pad + borderWidth
-  readonly property string errorTitle: "Keyboard access denied"
-  readonly property string errorDetail: "sudo usermod -aG input $USER && log out"
+  readonly property int cardWidth: borderWidth + pad + Math.ceil(labelMetrics.advanceWidth) + pad + borderWidth
+  readonly property int cardHeight: borderWidth + pad + fontSize + pad + borderWidth
 
   function applySettings(text) {
     var next = Model.parseShellJson(text, root.pluginId)
@@ -53,17 +47,22 @@ Item {
   function showCombo(text) {
     var label = String(text || "").replace(/^\s+|\s+$/g, "")
     if (!label) return
-    root.accessError = false
     root.displayText = label
     hideTimer.interval = root.durationMs
     hideTimer.restart()
   }
 
-  function showError(code) {
-    if (String(code) !== "no-input-access") return
-    root.accessError = true
-    root.displayText = root.errorTitle
-    hideTimer.stop()
+  function notifyAccessDenied() {
+    if (root.accessDeniedNotified) return
+    root.accessDeniedNotified = true
+    var send = (root.omarchyPath || "/usr/share/omarchy") + "/bin/omarchy-notification-send"
+    Quickshell.execDetached([
+      send,
+      "-u", "normal",
+      "-g", "",
+      "Omakeycast needs keyboard access",
+      "sudo usermod -aG input $USER && log out"
+    ])
   }
 
   function handleListenerLine(line) {
@@ -73,12 +72,8 @@ Item {
       root.showCombo(event.text)
       return
     }
-    if (event.type === "error") {
-      root.showError(event.code)
-      return
-    }
-    if (event.type === "status" && event.keyboards > 0 && root.accessError)
-      root.close()
+    if (event.type === "error" && event.code === "no-input-access")
+      root.notifyAccessDenied()
   }
 
   function open(payloadJson) {
@@ -89,7 +84,6 @@ Item {
 
   function close() {
     root.displayText = ""
-    root.accessError = false
     hideTimer.stop()
   }
 
@@ -112,18 +106,11 @@ Item {
   }
 
   TextMetrics {
-    id: titleMetrics
+    id: labelMetrics
     font.family: Style.font.family
     font.pixelSize: root.fontSize
     font.bold: true
-    text: root.accessError ? root.errorTitle : root.displayText
-  }
-
-  TextMetrics {
-    id: detailMetrics
-    font.family: Style.font.family
-    font.pixelSize: Math.max(12, Math.round(root.fontSize * 0.45))
-    text: root.accessError ? root.errorDetail : ""
+    text: root.displayText
   }
 
   FileView {
@@ -190,39 +177,22 @@ Item {
           NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
         }
 
-        Column {
+        Text {
           anchors.fill: parent
           anchors.topMargin: card.borderTop + root.pad
           anchors.rightMargin: card.borderRight + root.pad
           anchors.bottomMargin: card.borderBottom + root.pad
           anchors.leftMargin: card.borderLeft + root.pad
-          spacing: Style.space(4)
-
-          Text {
-            width: parent.width
-            textFormat: Text.PlainText
-            text: root.accessError ? root.errorTitle : root.displayText
-            color: Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: root.fontSize
-            font.bold: true
-            wrapMode: Text.NoWrap
-            elide: Text.ElideRight
-            maximumLineCount: 1
-          }
-
-          Text {
-            visible: root.accessError
-            width: parent.width
-            textFormat: Text.PlainText
-            text: root.errorDetail
-            color: Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: Math.max(12, Math.round(root.fontSize * 0.45))
-            wrapMode: Text.NoWrap
-            elide: Text.ElideRight
-            maximumLineCount: 1
-          }
+          textFormat: Text.PlainText
+          text: root.displayText
+          color: Color.popups.text
+          font.family: Style.font.family
+          font.pixelSize: root.fontSize
+          font.bold: true
+          wrapMode: Text.NoWrap
+          elide: Text.ElideRight
+          maximumLineCount: 1
+          verticalAlignment: Text.AlignVCenter
         }
       }
     }
