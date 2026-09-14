@@ -16,8 +16,9 @@ held together with Super, Ctrl, or Alt:
 
 ![Omakeycast demo](screenshots/demo.gif)
 
-Click the keyboard icon on the bar to turn overlays on or off, and to change
-duration, font size, and corner.
+Click the keyboard icon on the bar, or press `Super + Ctrl + Alt + K` after
+adding the binding below, to turn overlays on or off and to change duration,
+font size, and corner.
 
 ## Install
 
@@ -26,8 +27,9 @@ omarchy plugin add https://github.com/fredimachado/omakeycast.git --enable
 ```
 
 The overlay starts as soon as the plugin is enabled. A keyboard icon is added
-to the right side of the bar; click it to turn overlays on or off and to
-change duration, font size, and corner. Move it with `omarchy bar move`.
+to the right side of the bar; click it, or press `Super + Ctrl + Alt + K`
+after adding the binding in Keyboard below, to turn overlays on or off and to
+change duration, font size, and corner. Move the icon with `omarchy bar move`.
 
 ### Optional: in-app shortcuts
 
@@ -43,8 +45,9 @@ full capture on its own. Until then it keeps showing Hyprland binds only.
 
 ## Configure
 
-Click the keyboard icon on the bar. Changes write to
-`~/.config/omarchy/shell.json` and the overlay reloads them on save.
+Click the keyboard icon on the bar, or press `Super + Ctrl + Alt + K` after
+adding the binding below. Changes write to `~/.config/omarchy/shell.json` and
+the overlay reloads them on save.
 
 You can also edit the plugin or bar-layout entry by hand:
 
@@ -68,6 +71,28 @@ You can also edit the plugin or bar-layout entry by hand:
 | `duration` | `2`              | Seconds the combo stays visible                      |
 | `fontSize` | `28`             | Label size in pixels                                 |
 | `position` | `bottom-right`   | `bottom-right`, `bottom-left`, `top-right`, `top-left` |
+
+## Keyboard
+
+| Key | Where | Action |
+| --- | --- | --- |
+| `Super + Ctrl + Alt + K` | Hyprland | Open or close the Omakeycast panel |
+| `j` / `k` or up/down | Panel | Move between overlay toggle, duration, font size, position, and Preview |
+| `h` / `l` or left/right | Panel | Nudge duration or font size, or cycle corners |
+| `Enter` / `Space` | Panel | Toggle overlays, open the position list, or Preview |
+| `O` | Panel | Overlays on or off |
+| `P` | Panel | Preview |
+| `Esc` | Panel | Close |
+
+The Hyprland binding is not installed automatically. Add it to
+`~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + CTRL + ALT + K", "Omakeycast", "omarchy-shell omakeycast-settings toggle")
+```
+
+Inside the panel, keys match Audio and Display. The first arrow or `hjkl`
+press shows the highlight; later keys move or change values.
 
 ## Usage
 

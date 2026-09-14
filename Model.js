@@ -19,6 +19,13 @@ var POSITION_OPTIONS = [
   { value: "top-left", label: "Top left" }
 ]
 
+var PANEL_SECTIONS = ["header", "duration", "fontSize", "position", "preview"]
+var PANEL_DURATION_MIN = 0.5
+var PANEL_DURATION_MAX = 10
+var PANEL_DURATION_STEP = 0.5
+var PANEL_FONT_MIN = 12
+var PANEL_FONT_MAX = 64
+
 var HL_SHIFT = 1
 var HL_CTRL = 4
 var HL_ALT = 8
@@ -252,6 +259,41 @@ function formatDuration(seconds) {
   return String(Math.round(n * 100) / 100) + "s"
 }
 
+function nextPanelSection(current, delta) {
+  var idx = PANEL_SECTIONS.indexOf(String(current || ""))
+  if (idx < 0) return PANEL_SECTIONS[0]
+  var next = idx + (parseInt(delta, 10) || 0)
+  if (next < 0) return PANEL_SECTIONS[0]
+  if (next > PANEL_SECTIONS.length - 1) return PANEL_SECTIONS[PANEL_SECTIONS.length - 1]
+  return PANEL_SECTIONS[next]
+}
+
+function snapPanelDuration(value) {
+  var n = clamp(value, PANEL_DURATION_MIN, PANEL_DURATION_MAX, DEFAULTS.duration)
+  return Math.round(n / PANEL_DURATION_STEP) * PANEL_DURATION_STEP
+}
+
+function snapPanelFontSize(value) {
+  return Math.round(clamp(value, PANEL_FONT_MIN, PANEL_FONT_MAX, DEFAULTS.fontSize))
+}
+
+function nudgeDuration(current, steps) {
+  return snapPanelDuration(snapPanelDuration(current) + (parseInt(steps, 10) || 0) * PANEL_DURATION_STEP)
+}
+
+function nudgeFontSize(current, steps) {
+  return snapPanelFontSize(snapPanelFontSize(current) + (parseInt(steps, 10) || 0))
+}
+
+function cyclePosition(current, steps) {
+  var idx = POSITIONS.indexOf(normalizePosition(current))
+  if (idx < 0) idx = 0
+  var next = idx + (parseInt(steps, 10) || 0)
+  if (next < 0) return POSITIONS[0]
+  if (next > POSITIONS.length - 1) return POSITIONS[POSITIONS.length - 1]
+  return POSITIONS[next]
+}
+
 function parseShellJson(text, pluginId) {
   var config = null
   try {
@@ -293,6 +335,11 @@ if (typeof module !== "undefined") {
     DEFAULTS: DEFAULTS,
     POSITIONS: POSITIONS,
     POSITION_OPTIONS: POSITION_OPTIONS,
+    PANEL_SECTIONS: PANEL_SECTIONS,
+    nextPanelSection: nextPanelSection,
+    nudgeDuration: nudgeDuration,
+    nudgeFontSize: nudgeFontSize,
+    cyclePosition: cyclePosition,
     parseSettings: parseSettings,
     parseShellJson: parseShellJson,
     pluginEntry: pluginEntry,

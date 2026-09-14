@@ -17,11 +17,32 @@ Panel {
   readonly property color foreground: bar ? bar.foreground : Color.popups.text
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
+  // Single cursor shared by keyboard and mouse, matching Audio/Display:
+  // first hjkl/arrow reveals the highlight, later keys move or nudge.
+  property string focusSection: "header"
+  property bool cursorActive: false
+
+  readonly property bool headerHasCursor: cursorActive && focusSection === "header"
+  readonly property bool durationHasCursor: cursorActive && focusSection === "duration"
+  readonly property bool fontHasCursor: cursorActive && focusSection === "fontSize"
+  readonly property bool positionHasCursor: cursorActive && focusSection === "position"
+  readonly property bool previewHasCursor: cursorActive && focusSection === "preview"
+
+  onOpenedChanged: {
+    if (root.opened) return
+    root.cursorActive = false
+    root.focusSection = "header"
+    positionDropdown.close()
+  }
+
   function open() {
     root.controller.show()
   }
 
   function close() {
+    positionDropdown.close()
+    root.cursorActive = false
+    root.focusSection = "header"
     root.controller.hide()
   }
 
@@ -58,6 +79,50 @@ Panel {
     previewProc.running = true
   }
 
+  function setCursor(section) {
+    root.cursorActive = true
+    root.focusSection = section
+  }
+
+  function moveCursor(delta) {
+    root.focusSection = Model.nextPanelSection(root.focusSection, delta)
+  }
+
+  function persistIfChanged(values) {
+    if (!values) return
+    for (var key in values) {
+      if (values[key] !== root.parsed[key]) {
+        root.persistSettings(values)
+        return
+      }
+    }
+  }
+
+  function nudgeFocused(delta) {
+    if (root.focusSection === "duration") {
+      root.persistIfChanged({ duration: Model.nudgeDuration(root.parsed.duration, delta) })
+      return
+    }
+    if (root.focusSection === "fontSize") {
+      root.persistIfChanged({ fontSize: Model.nudgeFontSize(root.parsed.fontSize, delta) })
+      return
+    }
+    if (root.focusSection === "position")
+      root.persistIfChanged({ position: Model.cyclePosition(root.parsed.position, delta) })
+  }
+
+  function activateCursor() {
+    if (root.focusSection === "header") {
+      root.persistSettings({ enabled: !root.parsed.enabled })
+      return
+    }
+    if (root.focusSection === "position") {
+      positionDropdown.toggle()
+      return
+    }
+    if (root.focusSection === "preview") root.preview()
+  }
+
   Process {
     id: previewProc
   }
@@ -86,6 +151,12 @@ Panel {
       id: keyCatcher
       anchors.fill: parent
       blocked: positionDropdown.popupOpen
+      onMoveRequested: function(dx, dy) {
+        if (!root.cursorActive) { root.cursorActive = true; return }
+        if (dy !== 0) root.moveCursor(dy)
+        else if (dx !== 0) root.nudgeFocused(dx)
+      }
+      onActivateRequested: if (root.cursorActive) root.activateCursor()
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
@@ -105,6 +176,10 @@ Panel {
           width: parent.width
           implicitHeight: Math.max(titleLabel.implicitHeight, overlaySwitch.implicitHeight)
 
+          HoverHandler {
+            onHoveredChanged: if (hovered) root.setCursor("header")
+          }
+
           Text {
             id: titleLabel
             anchors.left: parent.left
@@ -123,9 +198,11 @@ Panel {
             id: overlaySwitch
             checked: root.parsed.enabled
             foreground: root.foreground
+            hasCursor: root.headerHasCursor
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             onToggled: root.persistSettings({ enabled: !root.parsed.enabled })
+            onHovered: function(isHovered) { if (isHovered) root.setCursor("header") }
 
             PanelToolTip {
               visible: overlaySwitch.containsMouse
@@ -174,15 +251,30 @@ Panel {
             }
           }
 
-          PanelSlider {
-            id: durationSlider
-            bar: root.bar
+          CursorSurface {
+            id: durationRow
             width: parent.width
-            minimum: 0.5
-            maximum: 10
-            step: 0.5
-            value: Math.max(0.5, Math.min(10, root.parsed.duration))
-            onReleased: function(v) { root.persistSettings({ duration: Math.round(v * 2) / 2 }) }
+            height: durationSlider.implicitHeight + Style.spacing.controlGap
+            hasCursor: root.durationHasCursor
+            foreground: root.foreground
+            outline: true
+
+            PanelSlider {
+              id: durationSlider
+              bar: root.bar
+              anchors.fill: parent
+              anchors.leftMargin: Style.space(6)
+              anchors.rightMargin: Style.space(6)
+              minimum: 0.5
+              maximum: 10
+              step: 0.5
+              value: Math.max(0.5, Math.min(10, root.parsed.duration))
+              onReleased: function(v) { root.persistSettings({ duration: Math.round(v * 2) / 2 }) }
+            }
+
+            HoverHandler {
+              onHoveredChanged: if (hovered) root.setCursor("duration")
+            }
           }
         }
 
@@ -216,16 +308,31 @@ Panel {
             }
           }
 
-          PanelSlider {
-            id: fontSlider
-            bar: root.bar
+          CursorSurface {
+            id: fontRow
             width: parent.width
-            minimum: 12
-            maximum: 64
-            step: 1
-            integer: true
-            value: Math.max(12, Math.min(64, root.parsed.fontSize))
-            onReleased: function(v) { root.persistSettings({ fontSize: Math.round(v) }) }
+            height: fontSlider.implicitHeight + Style.spacing.controlGap
+            hasCursor: root.fontHasCursor
+            foreground: root.foreground
+            outline: true
+
+            PanelSlider {
+              id: fontSlider
+              bar: root.bar
+              anchors.fill: parent
+              anchors.leftMargin: Style.space(6)
+              anchors.rightMargin: Style.space(6)
+              minimum: 12
+              maximum: 64
+              step: 1
+              integer: true
+              value: Math.max(12, Math.min(64, root.parsed.fontSize))
+              onReleased: function(v) { root.persistSettings({ fontSize: Math.round(v) }) }
+            }
+
+            HoverHandler {
+              onHoveredChanged: if (hovered) root.setCursor("fontSize")
+            }
           }
         }
 
@@ -237,7 +344,9 @@ Panel {
           foreground: root.foreground
           options: Model.POSITION_OPTIONS
           value: root.parsed.position
+          hasCursor: root.positionHasCursor
           onChanged: function(v) { root.persistSettings({ position: v }) }
+          onHovered: function(isHovered) { if (isHovered) root.setCursor("position") }
         }
 
         Button {
@@ -247,7 +356,9 @@ Panel {
           foreground: root.foreground
           bordered: true
           enabled: root.parsed.enabled
+          hasCursor: root.previewHasCursor
           onClicked: root.preview()
+          onHovered: function(isHovered) { if (isHovered) root.setCursor("preview") }
         }
       }
     }

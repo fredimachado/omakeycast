@@ -66,6 +66,20 @@ assert.equal(Model.settingsPayload({ enabled: false }, {}, Model.PLUGIN_ID).enab
 assert.equal(Model.formatDuration(2), "2s")
 assert.equal(Model.formatDuration(1.5), "1.5s")
 assert.equal(Model.POSITION_OPTIONS.length, 4)
+assert.deepEqual(Model.PANEL_SECTIONS, ["header", "duration", "fontSize", "position", "preview"])
+assert.equal(Model.nextPanelSection("header", 1), "duration")
+assert.equal(Model.nextPanelSection("preview", 1), "preview")
+assert.equal(Model.nextPanelSection("header", -1), "header")
+assert.equal(Model.nextPanelSection("unknown", 1), "header")
+assert.equal(Model.nudgeDuration(2, 1), 2.5)
+assert.equal(Model.nudgeDuration(10, 1), 10)
+assert.equal(Model.nudgeDuration(0.5, -1), 0.5)
+assert.equal(Model.nudgeFontSize(28, 1), 29)
+assert.equal(Model.nudgeFontSize(64, 1), 64)
+assert.equal(Model.nudgeFontSize(12, -1), 12)
+assert.equal(Model.cyclePosition("bottom-right", 1), "bottom-left")
+assert.equal(Model.cyclePosition("top-left", 1), "top-left")
+assert.equal(Model.cyclePosition("bottom-right", -1), "bottom-right")
 
 assert.deepEqual(Model.parseListenerLine('{"type":"combo","text":"Ctrl + A"}'), {
   type: "combo",
