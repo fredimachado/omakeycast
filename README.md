@@ -70,7 +70,7 @@ To preview the overlay without pressing a shortcut:
 omarchy-shell omakeycast show '{"text":"Super + Ctrl + Return"}'
 ```
 
-Hide it with Escape from that preview, or:
+Hide it with:
 
 ```sh
 omarchy-shell omakeycast close
