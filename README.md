@@ -12,6 +12,12 @@ held together with Super, Ctrl, or Alt:
 - `Super + Ctrl + V`
 - `Alt + Tab`
 
+![Example combo overlay](screenshots/overlay.png)
+
+Click the keyboard icon on the bar to change duration, font size, and corner:
+
+![Configuration panel](screenshots/panel.png)
+
 ## Install
 
 ```sh
