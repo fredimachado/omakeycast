@@ -4,13 +4,13 @@ On-screen keybinding overlay for [Omarchy](https://omarchy.org/). While you
 record your screen, Super, Ctrl, and Alt combinations appear at the bottom
 right of every monitor for a short time, on top of other windows.
 
-Bare keys and Shift-only typing stay hidden. Shift is included only when it
-is held together with Super, Ctrl, or Alt:
+By default it shows **Hyprland keybinds only** — no extra permissions. Bare
+keys and Shift-only typing stay hidden. Shift is included only when it is
+held together with Super, Ctrl, or Alt:
 
-- `Super + Ctrl + Return`
-- `Ctrl + A`
+- `Super + Return`
+- `Super + Ctrl + V`
 - `Alt + Tab`
-- `Ctrl + Shift + A`
 
 ## Install
 
@@ -21,18 +21,17 @@ omarchy plugin add https://github.com/fredimachado/omakeycast.git --enable
 The overlay starts as soon as the plugin is enabled. It does not add a bar
 widget.
 
-### Keyboard access
+### Optional: in-app shortcuts
 
-Omakeycast reads keyboard events from `/dev/input` without grabbing the
-device, so it never steals keys from apps or Hyprland. Your user must be in
-the `input` group:
+To also show application chords such as `Ctrl + A` and `Ctrl + C`, grant
+read access to `/dev/input` (the plugin never grabs the device) and log out:
 
 ```sh
 sudo usermod -aG input "$USER"
 ```
 
-Log out and back in after that. Until the group is active, Omakeycast sends a
-dismissible notification instead of showing key combos.
+After the next login, Omakeycast notices the extra access and switches to
+full capture on its own. Until then it keeps showing Hyprland binds only.
 
 ## Configure
 
@@ -60,9 +59,9 @@ The file reloads on save.
 
 ## Usage
 
-Press any Super, Ctrl, or Alt combination. The HUD appears on every screen,
-ignores mouse clicks, and fades after `duration` seconds. A new combo resets
-the timer.
+Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
+`input` group). The HUD appears on every screen, ignores mouse clicks, and
+fades after `duration` seconds. A new combo resets the timer.
 
 To preview the overlay without pressing a shortcut:
 

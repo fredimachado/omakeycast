@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
@@ -25,7 +26,8 @@ Item {
   property int durationMs: Model.DEFAULTS.duration * 1000
   property string position: Model.DEFAULTS.position
   property string displayText: ""
-  property bool accessDeniedNotified: false
+  property bool evdevLive: false
+  property var hyprEntries: []
   property bool opened: displayText !== ""
 
   readonly property bool placeRight: position.indexOf("right") !== -1
@@ -52,28 +54,38 @@ Item {
     hideTimer.restart()
   }
 
-  function notifyAccessDenied() {
-    if (root.accessDeniedNotified) return
-    root.accessDeniedNotified = true
-    var send = (root.omarchyPath || "/usr/share/omarchy") + "/bin/omarchy-notification-send"
-    Quickshell.execDetached([
-      send,
-      "-u", "normal",
-      "-g", "",
-      "Omakeycast needs keyboard access",
-      "sudo usermod -aG input $USER && log out"
-    ])
+  function setEvdevLive(next) {
+    var enabled = next === true
+    if (root.evdevLive === enabled) return
+    root.evdevLive = enabled
+    root.syncCompanionBinds()
+  }
+
+  function applyHyprBinds(text) {
+    root.hyprEntries = Model.hyprBindEntries(text)
+    root.syncCompanionBinds()
+  }
+
+  function syncCompanionBinds() {
+    var lua = Model.companionLua(root.evdevLive ? [] : root.hyprEntries)
+    if (evalProc.running) evalProc.running = false
+    evalProc.command = ["hyprctl", "eval", lua]
+    evalProc.running = true
   }
 
   function handleListenerLine(line) {
     var event = Model.parseListenerLine(line)
     if (!event) return
     if (event.type === "combo") {
-      root.showCombo(event.text)
+      if (root.evdevLive) root.showCombo(event.text)
+      return
+    }
+    if (event.type === "status" && event.keyboards > 0) {
+      root.setEvdevLive(true)
       return
     }
     if (event.type === "error" && event.code === "no-input-access")
-      root.notifyAccessDenied()
+      root.setEvdevLive(false)
   }
 
   function open(payloadJson) {
@@ -89,6 +101,13 @@ Item {
 
   function toggle() {
     if (root.opened) root.close()
+  }
+
+  Component.onCompleted: bindQuery.running = true
+  Component.onDestruction: {
+    if (evalProc.running) evalProc.running = false
+    evalProc.command = ["hyprctl", "eval", Model.companionLua([])]
+    evalProc.running = true
   }
 
   Timer {
@@ -124,6 +143,28 @@ Item {
   }
 
   Process {
+    id: bindQuery
+    command: ["hyprctl", "-j", "binds"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.applyHyprBinds(text)
+    }
+  }
+
+  Process {
+    id: evalProc
+    command: ["hyprctl", "eval", "--"]
+  }
+
+  Connections {
+    target: Hyprland
+    function onRawEvent(event) {
+      if (!event || !event.name) return
+      if (String(event.name) === "configreloaded") bindQuery.running = true
+    }
+  }
+
+  Process {
     id: listener
     running: root.listenerPath.indexOf("listen-keys.py") !== -1
     command: ["/usr/bin/setpriv", "--pdeathsig", "TERM", "/usr/bin/python3", "-u", root.listenerPath]
@@ -137,6 +178,10 @@ Item {
     target: "omakeycast"
     function show(payloadJson: string): string {
       root.open(payloadJson)
+      return "ok"
+    }
+    function combo(text: string): string {
+      root.showCombo(text)
       return "ok"
     }
     function close(): string {

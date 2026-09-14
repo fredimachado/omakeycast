@@ -42,4 +42,29 @@ assert.equal(Model.parseListenerLine('{"type":"combo","text":"  "}'), null)
 assert.equal(Model.parseListenerLine("not-json"), null)
 assert.equal(Model.parseListenerLine(""), null)
 
+assert.equal(Model.hyprKeyLabel("RETURN"), "Return")
+assert.equal(Model.hyprKeyLabel("XF86AudioRaiseVolume"), "VolumeUp")
+assert.equal(Model.formatCombo(true, true, false, false, "Return"), "Super + Ctrl + Return")
+
+const hyprBinds = JSON.stringify([
+  { mouse: false, catch_all: false, submap: "", description: "Terminal", modmask: 64, key: "RETURN" },
+  { mouse: false, catch_all: false, submap: "", description: "Clipboard manager", modmask: 68, key: "V" },
+  { mouse: false, catch_all: false, submap: "", description: "Terminal", modmask: 64, key: "RETURN" },
+  { mouse: false, catch_all: false, submap: "", description: "Omakeycast", modmask: 64, key: "K" },
+  { mouse: true, catch_all: false, submap: "", description: "Move", modmask: 64, key: "mouse:272" },
+  { mouse: false, catch_all: false, submap: "", description: "Volume up", modmask: 0, key: "XF86AudioRaiseVolume" },
+  { mouse: false, catch_all: false, submap: "resize", description: "Bigger", modmask: 64, key: "RIGHT" }
+])
+const entries = Model.hyprBindEntries(hyprBinds)
+assert.equal(entries.length, 2)
+assert.deepEqual(entries[0], { keys: "SUPER + RETURN", label: "Super + Return" })
+assert.deepEqual(entries[1], { keys: "SUPER + CTRL + V", label: "Super + Ctrl + V" })
+assert.deepEqual(Model.hyprBindEntries("not-json"), [])
+
+const lua = Model.companionLua(entries)
+assert.equal(lua.includes('hl.bind("SUPER + RETURN"'), true)
+assert.equal(lua.includes("omarchy-shell omakeycast combo 'Super + Return'"), true)
+assert.equal(lua.includes("non_consuming = true"), true)
+assert.equal(Model.companionLua([]).includes("_G.omakeycast.binds = {}"), true)
+
 console.log("model tests ok")
