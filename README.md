@@ -1,5 +1,7 @@
 # Omakeycast
 
+[![Built for Omarchy: Plugin](https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg)](https://github.com/tcballard/omarchy-badges)
+
 On-screen keybinding overlay for [Omarchy](https://omarchy.org/). While you
 record your screen, Super, Ctrl, and Alt combinations appear at the bottom
 right of every monitor for a short time, on top of other windows.
@@ -12,11 +14,9 @@ held together with Super, Ctrl, or Alt:
 - `Super + Ctrl + V`
 - `Alt + Tab`
 
-![Example combo overlay](screenshots/overlay.png)
+![Omakeycast demo](screenshots/demo.gif)
 
-Click the keyboard icon on the bar to change duration, font size, and corner:
-
-![Configuration panel](screenshots/panel.png)
+Click the keyboard icon on the bar to change duration, font size, and corner.
 
 ## Install
 
