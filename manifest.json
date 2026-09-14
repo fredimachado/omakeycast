@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.fredimachado.omakeycast",
+  "name": "Omakeycast",
+  "version": "1.0.0",
+  "author": "Fredi Machado",
+  "license": "MIT",
+  "description": "On-screen Super, Ctrl, and Alt keybinding overlay for screen recordings.",
+  "kinds": ["overlay"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Overlay.qml"
+  },
+  "overlay": {
+    "defaults": {
+      "duration": 2,
+      "fontSize": 28,
+      "position": "bottom-right"
+    }
+  }
+}
