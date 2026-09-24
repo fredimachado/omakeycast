@@ -122,6 +122,32 @@ const lua = Model.companionLua(entries)
 assert.equal(lua.includes('hl.bind("SUPER + RETURN"'), true)
 assert.equal(lua.includes("omarchy-shell omakeycast combo 'Super + Return'"), true)
 assert.equal(lua.includes("non_consuming = true"), true)
+assert.equal(lua.includes("repeating = false"), true)
 assert.equal(Model.companionLua([]).includes("_G.omakeycast.binds = {}"), true)
+
+const first = Model.pushChord([], "  Super + A  ", 2000, 0, 1)
+assert.equal(first.accepted, true)
+assert.equal(first.chords.length, 1)
+assert.deepEqual(first.chords[0], { id: 1, text: "Super + A", durationMs: 2000, shownAt: 0 })
+const second = Model.pushChord(first.chords, "Super + B", 1500, 400, 2)
+assert.equal(first.chords.length, 1)
+assert.deepEqual(second.chords.map(function(chord) { return chord.text }), ["Super + A", "Super + B"])
+assert.equal(second.chords[0].shownAt, 0)
+assert.equal(second.chords[1].id, 2)
+assert.equal(Model.pushChord(second.chords, "   ", 2000, 500, 3).accepted, false)
+
+const live = [
+  { id: 1, text: "A", durationMs: 1000, shownAt: 0 },
+  { id: 2, text: "B", durationMs: 500, shownAt: 200 },
+  { id: 3, text: "C", durationMs: 1000, shownAt: 400 }
+]
+assert.deepEqual(Model.expireChords(live, 700).map(function(chord) { return chord.id }), [1, 3])
+assert.deepEqual(Model.expireChords(live, 1000).map(function(chord) { return chord.id }), [3])
+assert.deepEqual(Model.expireChords(live, 1400).map(function(chord) { return chord.id }), [])
+assert.deepEqual(Model.trimChords(live, 2).map(function(chord) { return chord.id }), [2, 3])
+assert.equal(Model.trimChords(live, 0).length, 1)
+assert.equal(Model.stackedChordLimit(200, 60, 8), 3)
+assert.equal(Model.stackedChordLimit(60, 60, 8), 1)
+assert.equal(Model.stackedChordLimit(0, 60, 8), 1)
 
 console.log("model tests ok")

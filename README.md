@@ -99,8 +99,10 @@ are already Hyprland window binds. Inside the panel, keys match Audio and Displa
 
 Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
 `input` group). The HUD appears on every screen, ignores mouse clicks, and
-fades after `duration` seconds. A new combo resets the timer. The bar panel's
-Show sample button shows a combo without pressing a shortcut.
+each combo stays visible for `duration` seconds. A chord pressed while
+another is still up is added to the stack; each keeps its own timer. The
+newest chord sits in the chosen corner, and older ones step away from it.
+The bar panel's Show sample button shows a combo without pressing a shortcut.
 
 If the icon is missing after an upgrade from an overlay-only install, disable
 and enable the plugin so Omarchy can place the widget on the bar:

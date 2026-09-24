@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
@@ -26,10 +27,10 @@ Item {
   property int fontSize: Model.DEFAULTS.fontSize
   property int durationMs: Model.DEFAULTS.duration * 1000
   property string position: Model.DEFAULTS.position
-  property string displayText: ""
   property bool evdevLive: false
   property var hyprEntries: []
-  property bool opened: displayText !== ""
+  property int nextChordId: 1
+  property bool opened: chordModel.count > 0
 
   readonly property bool placeRight: position.indexOf("right") !== -1
   readonly property bool placeBottom: position.indexOf("bottom") !== -1
@@ -37,7 +38,7 @@ Item {
   readonly property int topClearance: Style.bar.sizeHorizontal + Style.gapsOut + Style.space(16)
   readonly property int pad: Style.space(16)
   readonly property int borderWidth: Math.max(1, Style.space(2))
-  readonly property int cardWidth: borderWidth + pad + Math.ceil(labelMetrics.advanceWidth) + pad + borderWidth
+  readonly property int stackSpacing: Style.space(8)
   readonly property int cardHeight: borderWidth + pad + fontSize + pad + borderWidth
 
   function applySettings(text) {
@@ -48,16 +49,79 @@ Item {
     root.durationMs = next.durationMs
     root.position = next.position
     if (!root.overlaysEnabled) root.close()
+    else if (chordModel.count > 0)
+      root.applyChordList(Model.trimChords(root.snapshot(), root.maxStackedChords()))
     if (wasEnabled !== root.overlaysEnabled) root.syncCompanionBinds()
+  }
+
+  function snapshot() {
+    var out = []
+    for (var i = 0; i < chordModel.count; i++) {
+      var row = chordModel.get(i)
+      out.push({
+        id: row.token,
+        text: String(row.text || ""),
+        durationMs: row.durationMs,
+        shownAt: row.shownAt
+      })
+    }
+    out.sort(function(a, b) { return Number(a.shownAt) - Number(b.shownAt) })
+    return out
+  }
+
+  function maxStackedChords() {
+    var limit = 0
+    try {
+      var screens = Quickshell.screens
+      var count = screens ? screens.length : 0
+      for (var i = 0; i < count; i++) {
+        var screen = screens[i]
+        if (!screen || !(screen.height > 0)) continue
+        var available = screen.height - root.topClearance - root.edgeMargin
+        var n = Model.stackedChordLimit(available, root.cardHeight, root.stackSpacing)
+        if (limit === 0 || n < limit) limit = n
+      }
+    } catch (e) {
+      limit = 0
+    }
+    return limit > 0 ? limit : 8
+  }
+
+  // Keep existing delegates when a chord is added or an older one expires.
+  // Replacing the whole model would restart every card.
+  function applyChordList(next) {
+    var rows = (next || []).slice()
+    // Column lays children out from the top. On a bottom corner the newest
+    // chord is last so it sits on the edge; on a top corner it is first.
+    if (!root.placeBottom) rows.reverse()
+    var i = 0
+    var n = 0
+    while (i < chordModel.count && n < rows.length) {
+      if (Number(chordModel.get(i).token) === Number(rows[n].id)) {
+        i++
+        n++
+        continue
+      }
+      chordModel.remove(i)
+    }
+    while (chordModel.count > n)
+      chordModel.remove(chordModel.count - 1)
+    for (; n < rows.length; n++) {
+      chordModel.append({
+        token: rows[n].id,
+        text: rows[n].text,
+        durationMs: rows[n].durationMs,
+        shownAt: rows[n].shownAt
+      })
+    }
   }
 
   function showCombo(text) {
     if (!root.overlaysEnabled) return
-    var label = String(text || "").replace(/^\s+|\s+$/g, "")
-    if (!label) return
-    root.displayText = label
-    hideTimer.interval = root.durationMs
-    hideTimer.restart()
+    var pushed = Model.pushChord(root.snapshot(), text, root.durationMs, Date.now(), root.nextChordId)
+    if (!pushed.accepted) return
+    root.nextChordId += 1
+    root.applyChordList(Model.trimChords(pushed.chords, root.maxStackedChords()))
   }
 
   function setEvdevLive(next) {
@@ -101,8 +165,7 @@ Item {
   }
 
   function close() {
-    root.displayText = ""
-    hideTimer.stop()
+    chordModel.clear()
   }
 
   function toggle() {
@@ -116,10 +179,19 @@ Item {
     evalProc.running = true
   }
 
+  ListModel {
+    id: chordModel
+  }
+
   Timer {
-    id: hideTimer
-    interval: root.durationMs
-    onTriggered: root.close()
+    interval: 100
+    repeat: true
+    running: chordModel.count > 0
+    onTriggered: {
+      var next = Model.expireChords(root.snapshot(), Date.now())
+      if (next.length !== chordModel.count)
+        root.applyChordList(next)
+    }
   }
 
   Timer {
@@ -128,14 +200,6 @@ Item {
     onTriggered: {
       if (!listener.running) listener.running = true
     }
-  }
-
-  TextMetrics {
-    id: labelMetrics
-    font.family: Style.font.family
-    font.pixelSize: root.fontSize
-    font.bold: true
-    text: root.displayText
   }
 
   FileView {
@@ -213,37 +277,91 @@ Item {
       exclusionMode: ExclusionMode.Ignore
       mask: Region {}
 
-      BorderSurface {
-        id: card
-        width: Math.max(1, root.cardWidth)
-        height: Math.max(1, root.cardHeight)
-        x: root.placeRight ? parent.width - width - root.edgeMargin : root.edgeMargin
-        y: root.placeBottom ? parent.height - height - root.edgeMargin : root.topClearance
-        color: Util.alpha(Color.background, 0.97)
-        borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, root.borderWidth)
-        radius: Style.cornerRadius
-        opacity: root.opened ? 1 : 0
+      // Newest chord sits in the corner. Older ones step away from it and
+      // leave on their own timer. A column does the stacking; placing each
+      // card by index left them on top of one another.
+      ColumnLayout {
+        id: stack
+        spacing: root.stackSpacing
+        anchors.right: root.placeRight ? parent.right : undefined
+        anchors.left: root.placeRight ? undefined : parent.left
+        anchors.bottom: root.placeBottom ? parent.bottom : undefined
+        anchors.top: root.placeBottom ? undefined : parent.top
+        anchors.rightMargin: root.placeRight ? root.edgeMargin : 0
+        anchors.leftMargin: root.placeRight ? 0 : root.edgeMargin
+        anchors.bottomMargin: root.placeBottom ? root.edgeMargin : 0
+        anchors.topMargin: root.placeBottom ? 0 : root.topClearance
 
-        Behavior on opacity {
-          NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-        }
+        Repeater {
+          model: chordModel
 
-        Text {
-          anchors.fill: parent
-          anchors.topMargin: card.borderTop + root.pad
-          anchors.rightMargin: card.borderRight + root.pad
-          anchors.bottomMargin: card.borderBottom + root.pad
-          anchors.leftMargin: card.borderLeft + root.pad
-          textFormat: Text.PlainText
-          text: root.displayText
-          color: Color.popups.text
-          font.family: Style.font.family
-          font.pixelSize: root.fontSize
-          font.bold: true
-          wrapMode: Text.NoWrap
-          elide: Text.ElideRight
-          maximumLineCount: 1
-          verticalAlignment: Text.AlignVCenter
+          delegate: Item {
+            id: slot
+            required property int index
+            required property string text
+
+            readonly property int cardWidth: Math.max(1, root.borderWidth + root.pad + Math.ceil(labelMetrics.advanceWidth) + root.pad + root.borderWidth)
+            property bool settled: false
+
+            z: index
+            Layout.alignment: root.placeRight ? Qt.AlignRight : Qt.AlignLeft
+            Layout.preferredWidth: cardWidth
+            Layout.preferredHeight: root.cardHeight
+            implicitWidth: cardWidth
+            implicitHeight: root.cardHeight
+
+            Component.onCompleted: Qt.callLater(function() { slot.settled = true })
+
+            Behavior on y {
+              enabled: slot.settled
+              NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+            }
+
+            TextMetrics {
+              id: labelMetrics
+              font.family: Style.font.family
+              font.pixelSize: root.fontSize
+              font.bold: true
+              text: slot.text
+            }
+
+            BorderSurface {
+              id: card
+              anchors.top: parent.top
+              anchors.right: root.placeRight ? parent.right : undefined
+              anchors.left: root.placeRight ? undefined : parent.left
+              width: slot.cardWidth
+              height: root.cardHeight
+              color: Util.alpha(Color.background, 0.97)
+              borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, root.borderWidth)
+              radius: Style.cornerRadius
+              opacity: 0
+
+              Component.onCompleted: card.opacity = 1
+
+              Behavior on opacity {
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+              }
+
+              Text {
+                anchors.fill: parent
+                anchors.topMargin: card.borderTop + root.pad
+                anchors.rightMargin: card.borderRight + root.pad
+                anchors.bottomMargin: card.borderBottom + root.pad
+                anchors.leftMargin: card.borderLeft + root.pad
+                textFormat: Text.PlainText
+                text: slot.text
+                color: Color.popups.text
+                font.family: Style.font.family
+                font.pixelSize: root.fontSize
+                font.bold: true
+                wrapMode: Text.NoWrap
+                elide: Text.ElideRight
+                maximumLineCount: 1
+                verticalAlignment: Text.AlignVCenter
+              }
+            }
+          }
         }
       }
     }

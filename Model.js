@@ -1,5 +1,5 @@
-// Settings and listener-line parsing for Omakeycast. Kept Qt-free so it can
-// be unit-tested under node.
+// Settings, chord stack, and listener-line parsing for Omakeycast. Kept
+// Qt-free so it can be unit-tested under node.
 
 var PLUGIN_ID = "io.github.fredimachado.omakeycast"
 
@@ -167,7 +167,7 @@ function companionLua(entries) {
     var cmd = "omarchy-shell omakeycast combo " + shellSingleQuote(entry.label)
     lines.push("do")
     lines.push("  local ok, kb = pcall(function()")
-    lines.push("    return hl.bind(" + luaQuote(entry.keys) + ", hl.dsp.exec_cmd(" + luaQuote(cmd) + "), { non_consuming = true, description = \"Omakeycast\" })")
+    lines.push("    return hl.bind(" + luaQuote(entry.keys) + ", hl.dsp.exec_cmd(" + luaQuote(cmd) + "), { non_consuming = true, repeating = false, description = \"Omakeycast\" })")
     lines.push("  end)")
     lines.push("  if ok and kb then _G.omakeycast.binds[#_G.omakeycast.binds + 1] = kb end")
     lines.push("end")
@@ -326,6 +326,52 @@ function parseShellJson(text, pluginId) {
   return parseSettings(pluginEntry(config, pluginId))
 }
 
+function pushChord(chords, text, durationMs, now, id) {
+  var label = String(text || "").replace(/^\s+|\s+$/g, "")
+  var current = chords || []
+  if (!label) return { chords: current, accepted: false }
+  var next = current.slice()
+  next.push({
+    id: id,
+    text: label,
+    durationMs: durationMs,
+    shownAt: now
+  })
+  return { chords: next, accepted: true }
+}
+
+function expireChords(chords, now) {
+  var next = []
+  var list = chords || []
+  var t = Number(now)
+  for (var i = 0; i < list.length; i++) {
+    var chord = list[i]
+    if (!chord) continue
+    if (t - Number(chord.shownAt) < Number(chord.durationMs)) next.push(chord)
+  }
+  return next
+}
+
+function trimChords(chords, limit) {
+  var list = (chords || []).slice()
+  var cap = Math.floor(Number(limit))
+  if (!isFinite(cap) || cap < 1) cap = 1
+  while (list.length > cap) list.shift()
+  return list
+}
+
+function stackedChordLimit(availableHeight, cardHeight, spacing) {
+  var card = Number(cardHeight)
+  var gap = Number(spacing)
+  if (!isFinite(card) || card <= 0) return 1
+  if (!isFinite(gap) || gap < 0) gap = 0
+  var available = Number(availableHeight)
+  if (!isFinite(available) || available <= 0) return 1
+  var n = Math.floor((available + gap) / (card + gap))
+  if (!isFinite(n) || n < 1) return 1
+  return n
+}
+
 function parseListenerLine(line) {
   var text = String(line || "").replace(/^\s+|\s+$/g, "")
   if (!text) return null
@@ -372,6 +418,10 @@ if (typeof module !== "undefined") {
     formatCombo: formatCombo,
     hyprKeyLabel: hyprKeyLabel,
     hyprBindEntries: hyprBindEntries,
-    companionLua: companionLua
+    companionLua: companionLua,
+    pushChord: pushChord,
+    expireChords: expireChords,
+    trimChords: trimChords,
+    stackedChordLimit: stackedChordLimit
   }
 }
