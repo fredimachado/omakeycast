@@ -335,9 +335,50 @@ function pushChord(chords, text, durationMs, now, id) {
     id: id,
     text: label,
     durationMs: durationMs,
-    shownAt: now
+    shownAt: now,
+    fadingAt: 0
   })
   return { chords: next, accepted: true }
+}
+
+// Mark a chord fading once its visible time is up, and drop it only after
+// fadeMs so the overlay can ease it out before the row disappears.
+function advanceChords(chords, now, fadeMs) {
+  var next = []
+  var changed = false
+  var fade = Number(fadeMs)
+  if (!isFinite(fade) || fade < 0) fade = 0
+  var t = Number(now)
+  var list = chords || []
+  for (var i = 0; i < list.length; i++) {
+    var chord = list[i]
+    if (!chord) {
+      changed = true
+      continue
+    }
+    var fadingAt = Number(chord.fadingAt) || 0
+    if (fadingAt > 0) {
+      if (t - fadingAt >= fade) {
+        changed = true
+        continue
+      }
+      next.push(chord)
+      continue
+    }
+    if (t - Number(chord.shownAt) >= Number(chord.durationMs)) {
+      next.push({
+        id: chord.id,
+        text: chord.text,
+        durationMs: chord.durationMs,
+        shownAt: chord.shownAt,
+        fadingAt: t
+      })
+      changed = true
+      continue
+    }
+    next.push(chord)
+  }
+  return { chords: next, changed: changed }
 }
 
 function expireChords(chords, now) {
@@ -420,6 +461,7 @@ if (typeof module !== "undefined") {
     hyprBindEntries: hyprBindEntries,
     companionLua: companionLua,
     pushChord: pushChord,
+    advanceChords: advanceChords,
     expireChords: expireChords,
     trimChords: trimChords,
     stackedChordLimit: stackedChordLimit

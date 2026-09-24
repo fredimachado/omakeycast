@@ -40,6 +40,8 @@ Item {
   readonly property int borderWidth: Math.max(1, Style.space(2))
   readonly property int stackSpacing: Style.space(8)
   readonly property int cardHeight: borderWidth + pad + fontSize + pad + borderWidth
+  readonly property int fadeInMs: 120
+  readonly property int fadeOutMs: 420
 
   function applySettings(text) {
     var next = Model.parseShellJson(text, root.pluginId)
@@ -62,7 +64,8 @@ Item {
         id: row.token,
         text: String(row.text || ""),
         durationMs: row.durationMs,
-        shownAt: row.shownAt
+        shownAt: row.shownAt,
+        fadingAt: Number(row.fadingAt) || 0
       })
     }
     out.sort(function(a, b) { return Number(a.shownAt) - Number(b.shownAt) })
@@ -98,6 +101,8 @@ Item {
     var n = 0
     while (i < chordModel.count && n < rows.length) {
       if (Number(chordModel.get(i).token) === Number(rows[n].id)) {
+        if ((Number(chordModel.get(i).fadingAt) || 0) !== (Number(rows[n].fadingAt) || 0))
+          chordModel.setProperty(i, "fadingAt", Number(rows[n].fadingAt) || 0)
         i++
         n++
         continue
@@ -111,7 +116,8 @@ Item {
         token: rows[n].id,
         text: rows[n].text,
         durationMs: rows[n].durationMs,
-        shownAt: rows[n].shownAt
+        shownAt: rows[n].shownAt,
+        fadingAt: Number(rows[n].fadingAt) || 0
       })
     }
   }
@@ -168,6 +174,15 @@ Item {
     chordModel.clear()
   }
 
+  function dismissChord(token) {
+    for (var i = chordModel.count - 1; i >= 0; i--) {
+      if (Number(chordModel.get(i).token) === Number(token)) {
+        chordModel.remove(i)
+        return
+      }
+    }
+  }
+
   function toggle() {
     if (root.opened) root.close()
   }
@@ -188,9 +203,10 @@ Item {
     repeat: true
     running: chordModel.count > 0
     onTriggered: {
-      var next = Model.expireChords(root.snapshot(), Date.now())
-      if (next.length !== chordModel.count)
-        root.applyChordList(next)
+      // Keep the row a little past the fade so the animation can finish,
+      // then drop it if the delegate never dismissed itself.
+      var step = Model.advanceChords(root.snapshot(), Date.now(), root.fadeOutMs + 80)
+      if (step.changed) root.applyChordList(step.chords)
     }
   }
 
@@ -298,10 +314,13 @@ Item {
           delegate: Item {
             id: slot
             required property int index
+            required property double token
             required property string text
+            required property double fadingAt
 
             readonly property int cardWidth: Math.max(1, root.borderWidth + root.pad + Math.ceil(labelMetrics.advanceWidth) + root.pad + root.borderWidth)
             property bool settled: false
+            property bool fading: false
 
             z: index
             Layout.alignment: root.placeRight ? Qt.AlignRight : Qt.AlignLeft
@@ -310,11 +329,32 @@ Item {
             implicitWidth: cardWidth
             implicitHeight: root.cardHeight
 
-            Component.onCompleted: Qt.callLater(function() { slot.settled = true })
+            function beginFade() {
+              if (slot.fading || !(slot.fadingAt > 0)) return
+              slot.fading = true
+              fadeOutAnim.start()
+            }
+
+            Component.onCompleted: {
+              Qt.callLater(function() { slot.settled = true })
+              Qt.callLater(slot.beginFade)
+            }
+
+            onFadingAtChanged: Qt.callLater(slot.beginFade)
 
             Behavior on y {
               enabled: slot.settled
-              NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+              NumberAnimation { duration: root.fadeOutMs; easing.type: Easing.InOutCubic }
+            }
+
+            NumberAnimation {
+              id: fadeOutAnim
+              target: card
+              property: "opacity"
+              to: 0
+              duration: root.fadeOutMs
+              easing.type: Easing.InOutCubic
+              onFinished: root.dismissChord(slot.token)
             }
 
             TextMetrics {
@@ -340,7 +380,8 @@ Item {
               Component.onCompleted: card.opacity = 1
 
               Behavior on opacity {
-                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                enabled: !slot.fading
+                NumberAnimation { duration: root.fadeInMs; easing.type: Easing.OutCubic }
               }
 
               Text {

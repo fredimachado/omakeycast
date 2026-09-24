@@ -99,7 +99,7 @@ are already Hyprland window binds. Inside the panel, keys match Audio and Displa
 
 Press a Hyprland shortcut (or any Super/Ctrl/Alt chord after joining the
 `input` group). The HUD appears on every screen, ignores mouse clicks, and
-each combo stays visible for `duration` seconds. A chord pressed while
+each combo stays visible for `duration` seconds, then fades out. A chord pressed while
 another is still up is added to the stack; each keeps its own timer. The
 newest chord sits in the chosen corner, and older ones step away from it.
 The bar panel's Show sample button shows a combo without pressing a shortcut.
